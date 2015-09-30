@@ -1,0 +1,12 @@
+name: EventLog
+main: net.knuples.eventlog.EventLogPlugin
+version: 150223
+author: uroskn
+description: >
+            Playing NSA plugin
+commands:
+    eventlog:
+        description: Shows basic EventLog information
+        aliases: el
+        usage: /<command> help
+permissions:

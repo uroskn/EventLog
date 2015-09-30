@@ -1,0 +1,3 @@
+output-file: events.log 
+auto-write: false
+queue-size: 3000000 # 3 million
