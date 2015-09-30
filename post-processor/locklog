@@ -1,0 +1,10 @@
+#!/usr/bin/php
+<?php
+
+  if (!@$argv[1]) $argv[1] = "/srv/workdir/events.queue.sqlite";
+  $h = fopen($argv[1], "a+");
+  if (!$h) die("Can't open");
+  flock($h, LOCK_EX);
+  echo "Locked. Terminate me when done\n";
+  while (true) sleep(3600);
+  die();
