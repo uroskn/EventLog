@@ -13,7 +13,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.entity.EntityTargetEvent.TargetReason;
+import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.projectiles.BlockProjectileSource;
@@ -29,12 +31,66 @@ public class EntityIngest extends AbstractIngestionModule {
 	{
 		return this.NewEventPacket(e).AddData("entity", this.SerializeEntity(e.getEntity()));
 	}
+	
+	private Packet SerializeRecipeList(MerchantRecipe m)
+	{
+		Packet t = this.GetPacket();
+		t.AddData("uses",     m.getUses());
+		t.AddData("max-uses", m.getMaxUses());
+		t.AddData("result",   this.SerializeItem(m.getResult()));
+		Packet temp = this.GetPacket();
+		int i = 0;
+		for (ItemStack itm : m.getIngredients())
+	      temp.AddData((new Integer(i++)).toString(), this.SerializeItem(itm));
+		return t;
+	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void CreatureSpawnEvent(CreatureSpawnEvent p)
 	{
 		this.AddEventToQueue(this.NewEntityEvent(p).
 				AddData("reason",   p.getSpawnReason()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void EntityAirChangeEvent(EntityAirChangeEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).
+				AddData("ammount",   p.getAmount()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void Resurrection(EntityResurrectEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void SpawnerSpawnEvent(SpawnerSpawnEvent b)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(b).
+				AddData("block", this.SerializeBlockState(b.getSpawner()).
+						AddData("ctype", b.getSpawner().getSpawnedType()).
+						AddData("delay", b.getSpawner().getDelay())));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void BreedEvent(EntityBreedEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).
+				AddData("item",   this.SerializeItem(p.getBredWith())).
+				AddData("breeder", this.SerializeEntity(p.getBreeder())).
+				AddData("father",  this.SerializeEntity(p.getFather())).
+				AddData("mother",  this.SerializeEntity(p.getMother())).
+				AddData("xp",      p.getExperience()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void EnderDragonChangePhase(EnderDragonChangePhaseEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).
+				AddData("current", p.getCurrentPhase()).
+				AddData("new",     p.getNewPhase()));
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -126,6 +182,24 @@ public class EntityIngest extends AbstractIngestionModule {
 	public void EntityInteractEvent(EntityInteractEvent p)
 	{
 		this.AddEventToQueue(this.NewEntityEvent(p).AddData("block", this.SerializeBlock(p.getBlock())));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void FireworkExplodeEvent(FireworkExplodeEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void ItemMergeEvent(ItemMergeEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).AddData("target", this.SerializeEntity(p.getTarget())));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void EntityToggleGlideEvent(EntityToggleGlideEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).AddData("gliding", p.isGliding()));
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -331,13 +405,33 @@ public class EntityIngest extends AbstractIngestionModule {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void PlayerLeashEntityEvent(EntityUnleashEvent p)
 	{
-		this.AddEventToQueue(this.NewEventPacket(p).AddData("entity", this.SerializeEntity(p.getEntity()).AddData("reason", p.getReason().toString())));
+		Packet pa = this.NewEventPacket(p).
+				AddData("entity", this.SerializeEntity(p.getEntity()).
+				AddData("reason", p.getReason().toString()));
+		if (p instanceof PlayerUnleashEntityEvent)
+			pa.AddData("player", this.SerializeEntity(((PlayerUnleashEntityEvent) p).getPlayer()));
+		this.AddEventToQueue(pa);
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void PlayerLeashEntityEvent(PlayerLeashEntityEvent p)
 	{
 		this.AddEventToQueue(this.NewEventPacket(p).AddData("entity", this.SerializeEntity(p.getEntity())).AddData("player", this.SerializeEntity(p.getPlayer())));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void VillagerReplenishTradeEvent(VillagerReplenishTradeEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).
+				AddData("bonus",  p.getBonus()).
+				AddData("recipe", this.SerializeRecipeList(p.getRecipe())));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void VillagerAcquireTradeEvent(VillagerAcquireTradeEvent p)
+	{
+		this.AddEventToQueue(this.NewEntityEvent(p).
+				AddData("recipe", this.SerializeRecipeList(p.getRecipe())));
 	}
 	
 	/*

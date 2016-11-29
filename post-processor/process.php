@@ -14,6 +14,7 @@
     foreach ($data as $k => $v) {
       if (is_array($v)) { if (IsCreateRec($v)) return true; }
       if (($k == "gamemode") && ($v == "CREATIVE")) return true;
+      if (($k == "gamemode") && ($v == "SPECTATOR")) return true;
     }
     return false;
   }
@@ -26,40 +27,54 @@
   $sort = array(
     BASE_PATH."liquid-flow/%DATE%.log.xz" => array("ELLiquidFlow"),
 
-    /*function ($data) {
-      return ((($data["event"] == "BlockFromToEvent") && (
-                (($data["block"]["id"] >= 8) && ($data["block"]["id"] <= 12))   ||
-                (($data["newblk"]["id"] >= 8) && ($data["newblk"]["id"] <= 12))
-              )) || ($data["event"] == "ELLiquidFlow"));
-    },*/
-
     BASE_PATH."chunks/%DATE%.log.xz" => array("ChunkLoadEvent", "ChunkUnloadEvent", "ChunkPopulateEvent"),
     BASE_PATH."admin/%DATE%.log.xz" => function ($data) { return IsCreateRec($data); },
 
     BASE_PATH."items/hopper/%DATE%.log.xz" => array("InventoryMoveItemEvent"),
     BASE_PATH."items/other/%DATE%.log.xz"  => array(
       "ItemSpawnEvent", "ItemDespawnEvent", "PlayerPickupItemEvent", "PlayerDropItemEvent",
-      "PlayerItemBreakEvent", "PlayerItemConsumeEvent",
-      function ($data) { return (($data["event"] == "ELEntityRemoved") && (@$data["entity"]["entity"]["type"] == "DROPPED_ITEM")); }
+      "PlayerItemBreakEvent", "PlayerItemConsumeEvent", "ItemMergeEvent",
+      "PlayerItemDamageEvent", "PlayerPickupArrowEvent",
+      function ($data) { 
+        return (($data["event"] == "ELEntityRemoved") && 
+                (@$data["entity"]["entity"]["type"] == "DROPPED_ITEM")); 
+      }
     ),
     BASE_PATH."blocks/%DATE%.log.xz"      => array(
-      "PlayerBucketFillEvent", "PlayerBucketEmptyEvent", "BlockFormEvent", "BlockBurnEvent", "BlockIgniteEvent", "BlockFadeEvent",
-      "BlockGrowEvent", "EntityChangeBlockEvent", "BlockSpreadEvent", "BlockPlaceEvent", "BlockBreakEvent", "BlockFromToEvent",
-      "EntityCreatePortalEvent", "HangingBreakByEntityEvent", "EntityExplodeEvent", "PortalCreateEvent", "StructureGrowEvent",
-      "ExplosionPrimeEvent", "LeavesDecayEvent", "SignChangeEvent", "BlockExpEvent"
+      "PlayerBucketFillEvent", "PlayerBucketEmptyEvent", "BlockFormEvent",
+      "BlockBurnEvent", "BlockIgniteEvent", "BlockFadeEvent",
+      "BlockGrowEvent", "EntityChangeBlockEvent", "BlockSpreadEvent", 
+      "BlockPlaceEvent", "BlockBreakEvent", "BlockFromToEvent",
+      "EntityCreatePortalEvent", "HangingBreakByEntityEvent", "EntityExplodeEvent", 
+      "PortalCreateEvent", "StructureGrowEvent",
+      "ExplosionPrimeEvent", "LeavesDecayEvent", "SignChangeEvent", "BlockExpEvent",
+      "BlockExplodeEvent", "BlockCanBuildEvent", "CauldronLevelChangeEvent",
+      "BrewingStandFuelEvent", "BlockPistonExtendEvent", "BlockPistonRetractEvent",
+      "BlockMultiPlaceEvent",
     ),
 
-    BASE_PATH."player/movement/%DATE%.log.xz"    => array("PlayerMoveEvent", "VehicleMoveEvent", "PlayerToggleSprintEvent", "PlayerToggleSneakEvent", "PlayerToggleFlightEvent"),
-    BASE_PATH."player/interact/%DATE%.log.xz"    => array("PlayerInteractEvent", "PlayerInteractEntityEvent"),
+    BASE_PATH."player/movement/%DATE%.log.xz"    => array(
+      "PlayerMoveEvent", "VehicleMoveEvent", "PlayerToggleSprintEvent", 
+      "PlayerToggleSneakEvent", "PlayerToggleFlightEvent",
+      "PlayerPortalEvent",
+    ),
+    BASE_PATH."player/interact/%DATE%.log.xz"    => array(
+      "PlayerInteractEvent", "PlayerInteractEntityEvent"
+    ),
     BASE_PATH."player/health/%DATE%.log.xz"      => array(
-      function ($data) { if (!isset($data["entity"]["isplayer"])) throw new Exception("STOP THIS MADNESS!"); },
-      "EntityDamageEvent", "EntityDamageByEntityEvent", "EntityDamageByBlockEvent", "EntityRegainHealthEvent", "EntityCombustByBlockEvent",
+      function ($data) { 
+        if (!isset($data["entity"]["isplayer"])) 
+          throw new Exception("STOP THIS MADNESS!"); 
+      },
+      "EntityDamageEvent", "EntityDamageByEntityEvent", "EntityDamageByBlockEvent", 
+      "EntityRegainHealthEvent", "EntityCombustByBlockEvent",
       "EntityCombustByEntityEvent", "PlayerDeathEvent",
     ),
     BASE_PATH."player/inventory/%DATE%.log.xz"   => array(
       "PlayerItemHeldEvent", "InventoryOpenEvent", "InventoryCreativeEvent",
       "InventoryCloseEvent", "CraftItemEvent", "FurnaceExtractEvent",
-      "ELContainerTx",
+      "ELContainerTx", "PlayerSwapHandItemsEvent", "PrepareItemEnchantEvent", 
+      "PlayerArmorStandManipulateEvent",
     ),
     BASE_PATH."player/chat/%DATE%.log.xz"        => array(
       function ($data) { return (($data["event"] == "PlayerCommandPreprocessEvent") &&
@@ -69,25 +84,55 @@
       "AsyncPlayerChatEvent"
     ),
     BASE_PATH."player/other/%DATE%.log.xz"       => array(
-      "PlayerKickEvent", "PlayerGameModeChangeEvent", "PlayerBedEnterEvent", "PlayerBedLeaveEvent", "PlayerFishEvent", "PlayerRespawnEvent",
-      "PlayerJoinEvent", "PlayerQuitEvent", "PlayerLoginEvent", "PlayerChangedWorldEvent", "PlayerEggThrowEvent", "PlayerTeleportEvent",
-      "PlayerLevelChangeEvent", "PlayerVelocityEvent", "PlayerExpChangeEvent", "FoodLevelChangeEvent", "PlayerEditBookEvent",
-      "PlayerShearEntityEvent", "EnchantItemEvent", "PrepareItemEnchantEvent", "BlockDamageEvent", "HangingPlaceEvent",
-      function ($data) { return (($data["event"] == "VehicleExitEvent")    && (isset($data["exited"]["isplayer"]))); },
-      function ($data) { return (($data["event"] == "VehicleEnterEvent")   && (isset($data["entered"]["isplayer"]))); },
-      function ($data) { return (($data["event"] == "VehicleDestroyEvent") && (isset($data["attacker"]["isplayer"]))); }
+      "PlayerKickEvent", "PlayerGameModeChangeEvent", "PlayerBedEnterEvent", 
+      "PlayerBedLeaveEvent", "PlayerFishEvent", "PlayerRespawnEvent",
+      "PlayerJoinEvent", "PlayerQuitEvent", "PlayerLoginEvent", 
+      "PlayerChangedWorldEvent", "PlayerEggThrowEvent", "PlayerTeleportEvent",
+      "PlayerLevelChangeEvent", "PlayerVelocityEvent", "PlayerExpChangeEvent", 
+      "FoodLevelChangeEvent", "PlayerEditBookEvent", "PlayerShearEntityEvent", 
+      "EnchantItemEvent", "BlockDamageEvent", "HangingPlaceEvent", 
+      "PlayerAchievementAwardedEvent", "PlayerInteractAtEntityEvent",
+      "PlayerUnleashEntityEvent", "PlayerLeashEntityEvent",
+      function ($data) { 
+        return (($data["event"] == "VehicleExitEvent") && 
+                (isset($data["exited"]["isplayer"]))); 
+      },
+      function ($data) { 
+        return (($data["event"] == "VehicleEnterEvent") && 
+                (isset($data["entered"]["isplayer"]))); 
+      },
+      function ($data) { 
+        return (($data["event"] == "VehicleDestroyEvent")  && 
+                (isset($data["attacker"]["isplayer"]))); 
+      },
+      function ($data) { 
+        $parray = array("EntityToggleGlideEvent", "EntityAirChangeEvent",
+                        "EntityResurrectEvent");
+        return ((in_array($data["event"], $parray)) && 
+                (isset($data["entity"]["isplayer"])));
+      },
     ),
 
-    BASE_PATH."entity/targeting/%DATE%.log.xz" => array("EntityTargetLivingEntityEvent", "EntityTargetEvent", "ELPigmanCoolDownEvent", "ELPigmanAngerEvent"),
-    BASE_PATH."entity/spawn/%DATE%.log.xz"     => array("EntityDeathEvent", "CreatureSpawnEvent", "ELEntityRemoved"),
+    BASE_PATH."entity/targeting/%DATE%.log.xz" => array(
+      "EntityTargetLivingEntityEvent", "EntityTargetEvent", 
+      "ELPigmanCoolDownEvent", "ELPigmanAngerEvent"
+    ),
+    BASE_PATH."entity/spawn/%DATE%.log.xz"     => array(
+      "EntityDeathEvent", "CreatureSpawnEvent", "ELEntityRemoved", 
+      "SpawnerSpawnEvent"
+    ),
     BASE_PATH."entity/health/%DATE%.log.xz"    => array(
       function ($data) { if (isset($data["entity"]["isplayer"])) throw new Exception("STOP THIS MADNESS!"); },
-      "EntityDamageEvent", "EntityDamageByEntityEvent", "EntityDamageByBlockEvent", "EntityRegainHealthEvent", "EntityCombustByBlockEvent",
-      "EntityCombustByEntityEvent",
+      "EntityDamageEvent", "EntityDamageByEntityEvent", "EntityDamageByBlockEvent", 
+      "EntityRegainHealthEvent", "EntityCombustByBlockEvent", "EntityCombustByEntityEvent",
+      "EntityAirChangeEvent", "EntityResurrectEvent",
     ),
     BASE_PATH."entity/other/%DATE%.log.xz"     => array(
       "EntityTameEvent", "EntityBreakDoorEvent", "EntityPortalEvent", "EntityShootBowEvent",
-      "EntityPortalExitEvent", "EntityInteractEvent", "EntityPortalEnterEvent", "EntityTeleportEvent"
+      "EntityPortalExitEvent", "EntityInteractEvent", "EntityPortalEnterEvent", 
+      "EntityTeleportEvent", "EntityBreedEvent", "EnderDragonChangePhaseEvent",
+      "VehicleExitEvent", "VehicleEnterEvent", "VehicleDestroyEvent",
+      "EntityToggleGlideEvent", "FireworkExplodeEvent",
     ),
   );
 
@@ -287,10 +332,10 @@
         if (defined("EXPECT_JSON"))
         {
           $data = json_decode($line, true);
-          /*@$data["date"] = array(
+          @$data["date"] = array(
             "sec"    => (int)substr($data["date"], 0, strlen($data["date"]) - 3),
             "milis"  => (int)substr($data["date"], -3),
-          );*/
+          );
         }
         else $data = FixValues(SimpleDecode($line));
         if (!isset($data["event"])) throw new Exception("Unknown event :-(");

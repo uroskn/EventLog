@@ -10,6 +10,7 @@ import org.bukkit.block.*;
 import org.bukkit.Location;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Colorable;
 import org.bukkit.potion.PotionEffect;
 
 import java.util.*;
@@ -24,10 +25,23 @@ public class AbstractIngestionModule implements Listener {
 		  e.getMetadata("_EV_PORTAL_EVENT").clear();
 	  }
 	  catch (Exception ex) { };
-	  return this.GetPacket().AddData("eid",        e.getEntityId()).
-			  				  AddData("type",       e.getType()).
-			  				  AddData("guid",       e.getUniqueId()).
-			  				  AddData("location",   this.SerializeLocation(e.getLocation()));
+	  Packet p = this.GetPacket().AddData("eid",         e.getEntityId()).
+			  				  AddData("type",        e.getType()).
+			  				  AddData("guid",        e.getUniqueId()).
+			  				  AddData("falldist",    e.getFallDistance()).
+			  				  AddData("passenger",   this.SerializeEntity(e.getPassenger())).
+			  				  AddData("portal-cool", e.getPortalCooldown()).
+			  				  AddData("ground",      e.isOnGround()).
+			  				  AddData("location",    this.SerializeLocation(e.getLocation()));
+	  if (e instanceof Damageable)
+	  {
+		  p.AddData("health",     ((Damageable) e).getHealth()).
+			  AddData("maxhealth",  ((Damageable) e).getMaxHealth());
+	  }
+	  if (e instanceof Vehicle) p.AddData("velocity", e.getVelocity());
+	  if (e instanceof Colorable) p.AddData("color", ((Colorable) e).getColor());
+	  return p;
+
   }
   
   protected Packet SerializePotionEffects(Collection<PotionEffect> pot)
@@ -54,49 +68,158 @@ public class AbstractIngestionModule implements Listener {
 	  }
   }
   
-  private Packet _SerializeLivingEntity(LivingEntity e)
+  private Packet _SerializeLivingSpecifics(LivingEntity e, Packet t)
   {
-	  Packet t = this._SerializeEntity(e).AddData("isliving",  true).
-			  							  AddData("firetick",  e.getFireTicks()).
-			  							  AddData("air",       e.getRemainingAir()).
-			  							  AddData("health",    e.getHealth()).
-			  							  AddData("maxhealth", e.getMaxHealth()).
-			                              AddData("custoname", e.getCustomName()).
-	                                      AddData("peffects", this.SerializePotionEffects(e.getActivePotionEffects()));
 	  if (e instanceof Player) this._SerializePlayer((Player)e, t);
-	  if (e instanceof Ageable) t.AddData("age", ((Ageable) e).getAge()).AddData("adult", ((Ageable) e).isAdult());  
-	  if (e instanceof Tameable) 
+	  else if (e instanceof Bat)         t.AddData("awake", ((Bat) e).isAwake());
+	  else if (e instanceof EnderDragon) t.AddData("phase", ((EnderDragon) e).getPhase());
+	  else if (e instanceof Villager)
 	  {
-		  if (((Tameable) e).getOwner() != null) t.AddData("owner", ((Tameable) e).getOwner().getName());
-		  else t.AddData("owner", "");
+		  t.AddData("profession", ((Villager) e).getProfession()).
+		    AddData("riches",     ((Villager) e).getRiches()).
+		    AddData("recipes",    ((Villager) e).getRecipeCount()).
+		    AddData("trading",    ((Villager) e).getTrader());
 	  }
-	  if (e instanceof PigZombie) t.AddData("angry", ((PigZombie)e).getAnger());
-	  if (e instanceof Enderman) t.AddData("block", this.SerializeItem(((Enderman)e).getCarriedMaterial().toItemStack()));
-	  if (e instanceof Horse)
+	  else if (e instanceof Animals)
 	  {
-		  t.AddData("ishorse", true).AddData("horsedata", this.GetPacket().
-				  AddData("color",         ((Horse) e).getColor()).
-				  AddData("jumpstrenght",  ((Horse) e).getJumpStrength()).
-				  AddData("style",         ((Horse) e).getStyle()).
-				  AddData("variant",       ((Horse) e).getVariant()).
-				  AddData("domestication", ((Horse) e).getDomestication()).
-				  AddData("getmaxdom",     ((Horse) e).getMaxDomestication()));
+		  if (e instanceof AbstractHorse)
+		  {
+			  t.AddData("ishorse", true).AddData("horsedata", this.GetPacket().
+					  AddData("jumpstrenght",  ((AbstractHorse) e).getJumpStrength()).
+					  AddData("variant",       ((AbstractHorse) e).getVariant()).
+					  AddData("domestication", ((AbstractHorse) e).getDomestication()).
+					  AddData("getmaxdom",     ((AbstractHorse) e).getMaxDomestication()));
+			  if (e instanceof ChestedHorse) t.AddData("chest", ((ChestedHorse) e).isCarryingChest());
+			  else if (e instanceof Horse)
+			  {
+				  t.AddData("color",    ((Horse) e).getColor()).
+				   AddData("style",    ((Horse) e).getStyle()).
+				   AddData("invetory", this.GetPacket().
+						  AddData("armor",   this.SerializeItem(((Horse) e).getInventory().getArmor())).
+						  AddData("saddle",  this.SerializeItem(((Horse) e).getInventory().getSaddle())));
+			  }
+			  else if (e instanceof Llama)
+			  {
+				  t.AddData("color",    ((Llama) e).getColor()).
+				    AddData("strenght", ((Llama) e).getStrength()).
+				    AddData("decor",    this.SerializeItem(((Llama) e).getInventory().getDecor()));
+			  }
+		  }
+		  else if (e instanceof Ocelot)
+		  {
+			  t.AddData("type",    ((Ocelot) e).getCatType()).
+			  	AddData("sitting", ((Ocelot) e).isSitting());
+		  }
+		  else if (e instanceof Wolf)
+		  {
+			  t.AddData("collar-color", ((Wolf) e).getCollarColor()).
+			    AddData("angry",        ((Wolf) e).isAngry()).
+			    AddData("sitting",      ((Wolf) e).isSitting());
+		  }
+		  else if (e instanceof Pig) t.AddData("saddle", ((Pig) e).hasSaddle());
+		  else if (e instanceof Rabbit) t.AddData("type", ((Rabbit) e).getRabbitType());
+		  else if (e instanceof Sheep) t.AddData("sheared", ((Sheep) e).isSheared());
+	  }
+	  else if (e instanceof Monster)
+	  {
+		  if (e instanceof Zombie)
+		  {
+			  t.AddData("baby", ((Zombie) e).isBaby());
+			  if (e instanceof PigZombie) 
+			  {
+				  t.AddData("level", ((PigZombie)e).getAnger()).
+				    AddData("angry", ((PigZombie) e).isAngry());
+			  }
+			  else if (e instanceof ZombieVillager)
+			  {
+				  t.AddData("profession", ((ZombieVillager) e).getVillagerProfession());
+			  }
+		  }
+		  else if (e instanceof Enderman)  t.AddData("block", this.SerializeItem(((Enderman)e).getCarriedMaterial().toItemStack()));
+		  else if (e instanceof Creeper) t.AddData("powered", ((Creeper) e).isPowered());
+		  else if (e instanceof ElderGuardian) t.AddData("elder", ((ElderGuardian) e).isElder());
+		  else if (e instanceof Evoker) t.AddData("spell", ((Evoker) e).getCurrentSpell());
 	  }
 	  return t;
   }
   
+  private Packet _SerializeLivingEntity(LivingEntity e, boolean screature)
+  {
+	  Packet t = this._SerializeEntity(e).AddData("isliving",   true).
+			  							  AddData("firetick",   e.getFireTicks()).
+			  							  AddData("air",        e.getRemainingAir()).
+			  							  AddData("maxair",     e.getMaximumAir()).
+			                              AddData("customname", e.getCustomName()).
+			                              AddData("passenger",  this.SerializeEntity(e.getPassenger())).
+			                              AddData("nodmgticks", e.getNoDamageTicks()).
+			                              AddData("has-ai",     e.hasAI()).
+			                              AddData("gravity",    e.hasGravity()).
+			                              AddData("can-pickup", e.getCanPickupItems()).
+			                              AddData("gliding",    e.isGliding()).
+			                              AddData("collidable", e.isCollidable()).
+	                                      AddData("peffects",   this.SerializePotionEffects(e.getActivePotionEffects()));
+	  if (e.isLeashed()) t.AddData("leash", this.SerializeEntity(e.getLeashHolder()));
+	  if (e instanceof Creature)
+	  {
+		  if (screature)
+		  {
+			  t.AddData("target", this.SerializeEntity(((Creature) e).getTarget(), 
+					  ((((Creature) e).getTarget() instanceof Creature) && 
+	                  (((Creature) ((Creature) e).getTarget())).getTarget() == ((Creature) e).getTarget())));
+		  }
+		  else t.AddData("target", "**** LOOP ****");
+	  }
+	  if (e instanceof Ageable) 
+	  {
+		  t.AddData("age",   ((Ageable) e).getAge()).
+		    AddData("adult", ((Ageable) e).isAdult()).
+		    AddData("breed", ((Ageable) e).canBreed());  
+	  }
+	  if (e instanceof Tameable) 
+	  {
+		  if (((Tameable) e).getOwner() != null) 
+		  {
+			  t.AddData("owner", this.GetPacket().
+					  AddData("name", ((Tameable) e).getOwner().getName()).
+					  AddData("uuid", ((Tameable) e).getOwner().getUniqueId()));
+		  }
+		  else t.AddData("owner", "");
+	  }
+	  return this._SerializeLivingSpecifics(e, t);
+  }
+  
   private void _SerializePlayer(Player p, Packet t)
   {
-	  t.AddData("network", this.GetPacket().AddData("ip", p.getAddress().getHostString()).
-			  									   AddData("port", p.getAddress().getPort())).
-			  							   AddData("isplayer",   true).
-			  							   AddData("name",       p.getDisplayName()).
-			  			     			   AddData("xp",         p.getTotalExperience()).
-			  							   AddData("xplevel",    p.getLevel()).
-			  							   AddData("food",       p.getFoodLevel()).
-			  							   AddData("gamemode",   p.getGameMode()).
-			  							   AddData("isop",       p.isOp()).
-			  							   AddData("saturation", p.getSaturation());
+	  t.AddData("network", this.GetPacket().
+			  AddData("ip",         p.getAddress().getHostString()).
+			  AddData("port",       p.getAddress().getPort())).
+		  AddData("admin-mode", this.GetPacket().
+			  AddData("gamemode",   p.getGameMode()).
+			  AddData("isop",       p.isOp())).
+		  AddData("isplayer",   true).
+		  AddData("name",       p.getDisplayName()).
+          AddData("xp",         p.getTotalExperience()).
+		  AddData("xplevel",    p.getLevel()).
+		  AddData("food",       p.getFoodLevel()).
+		  AddData("item",       this.SerializeItem(p.getInventory().getItemInMainHand())).
+		  AddData("offitem",    this.SerializeItem(p.getInventory().getItemInOffHand())).
+		  AddData("armor",      this.GetPacket().
+				  AddData("helmet",     this.SerializeItem(p.getInventory().getHelmet())).
+				  AddData("chestplate", this.SerializeItem(p.getInventory().getChestplate())).
+				  AddData("leggings",   this.SerializeItem(p.getInventory().getLeggings())).
+				  AddData("boots",      this.SerializeItem(p.getInventory().getBoots()))).
+		  AddData("exaustion",  p.getExhaustion()).
+		  AddData("state",      this.GetPacket().
+			  AddData("flying",     p.isFlying()).
+			  AddData("sneaking",   p.isSneaking()).
+			  AddData("sprinting",  p.isSprinting()).
+			  AddData("sleeping",   p.isSleeping()).
+			  AddData("blocking",   p.isBlocking())).
+		  AddData("listname",   p.getPlayerListName()).
+		  AddData("weather",    p.getPlayerWeather()).
+		  AddData("spectating", this.SerializeEntity(p.getSpectatorTarget())).
+		  AddData("spawn",      this.SerializeLocation(p.getCompassTarget())).
+		  AddData("saturation", p.getSaturation());
   }
   
   private Packet _SerializeItemEntity(Item i)
@@ -105,16 +228,33 @@ public class AbstractIngestionModule implements Listener {
 			                  AddData("item",   this.SerializeItem(i.getItemStack()));
   }
   
-  protected Packet SerializeEntity(Entity e)
+  private Packet _SerializeArrow(Arrow a)
+  {
+	  Packet p = this.GetPacket().AddData("entity",    this._SerializeEntity(a)).
+			                      AddData("critical",  a.isCritical()).
+			                      AddData("knockback", a.getKnockbackStrength());
+	  if (a instanceof SpectralArrow) p.AddData("glowing", ((SpectralArrow) a).getGlowingTicks());
+	  else if (a instanceof TippedArrow) p.AddData("effects", this.SerializePotionEffects(((TippedArrow) a).getCustomEffects()));
+	  return p;
+  }
+  
+  protected Packet SerializeEntity(Entity e, boolean screature)
   {
 	  if (e == null) return this.GetPacket();
-	  if (e instanceof LivingEntity) return this._SerializeLivingEntity((LivingEntity)e);
-	  else if (e instanceof Item) return this._SerializeItemEntity((Item)e);
-	  else return this._SerializeEntity(e);
+	  if (e instanceof LivingEntity) return this._SerializeLivingEntity((LivingEntity)e, screature);
+	  if (e instanceof Item) return this._SerializeItemEntity((Item)e);
+	  if (e instanceof Arrow) return this._SerializeArrow((Arrow) e);
+	  return this._SerializeEntity(e);
+  }
+  
+  protected Packet SerializeEntity(Entity e)
+  {
+	  return this.SerializeEntity(e, true);
   }
   
   protected Packet SerializeLocation(Location loc)
   {
+	  if (loc == null) return this.GetPacket();
 	  return this.GetPacket().AddData("x",     loc.getBlockX()).
 			                  AddData("y",     loc.getBlockY()).
 			                  AddData("z",     loc.getBlockZ()).

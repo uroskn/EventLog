@@ -2,6 +2,7 @@ package net.knuples.eventlog.ingestion;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.knuples.eventlog.*;
@@ -14,6 +15,8 @@ import org.bukkit.block.BlockState;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.SpawnerSpawnEvent;
+import org.bukkit.event.inventory.BrewingStandFuelEvent;
 import org.bukkit.material.MaterialData;
 
 public class BlockEventsIngestion extends AbstractIngestionModule {
@@ -36,29 +39,114 @@ public class BlockEventsIngestion extends AbstractIngestionModule {
 	
 	protected Packet SerializeBlockEvent(BlockEvent b)
 	{
-		return (this.NewEventPacket(b)).AddData("block", this.SerializeBlock(b.getBlock())).
-										AddData("world", b.getBlock().getWorld().getName());
+		return (this.NewEventPacket(b)).AddData("block", this.SerializeBlock(b.getBlock()));
+	}
+	
+	protected Packet SerializeBlocksList(List<Block> list)
+	{
+		Packet result = this.GetPacket();
+		int i = 0;
+		for (Block block : list)
+		{
+			result.AddData((new Integer(i++)).toString(), this.SerializeBlock(block));
+		}
+		return result;
+	}
+	
+	protected Packet SerializeBlocksListState(List<BlockState> list)
+	{
+		Packet result = this.GetPacket();
+		int i = 0;
+		for (BlockState block : list)
+		{
+			result.AddData((new Integer(i++)).toString(), this.SerializeBlockState(block));
+		}
+		return result;
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void BlockExplode(BlockExplodeEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).
+				AddData("yield",     b.getYield()).
+				AddData("blocks",    this.SerializeBlocksList(b.blockList())));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void BlockCanBuild(BlockCanBuildEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).AddData("buildable", b.isBuildable()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void CauldronChange(CauldronLevelChangeEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).
+				AddData("old-level", b.getOldLevel()).
+				AddData("new-level", b.getNewLevel()).
+				AddData("reason",    b.getReason()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void BrewingStandFuel(BrewingStandFuelEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).
+				AddData("fuel",      this.SerializeItem(b.getFuel())).
+				AddData("power",     b.getFuelPower()).
+				AddData("consuming", b.isConsuming()));
+	}
+
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void PistonExtends(BlockPistonExtendEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).
+				AddData("sticky",    b.isSticky()).
+				AddData("direction", b.getDirection().toString()).
+				AddData("mblocks",   this.SerializeBlocksList(b.getBlocks())));
+	}
+
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void PistonRetracts(BlockPistonRetractEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).
+				AddData("sticky",    b.isSticky()).
+				AddData("direction", b.getDirection().toString()).
+				AddData("mblocks",   this.SerializeBlocksList(b.getBlocks())));
+	}
+		
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void BlockMultiPlace(BlockMultiPlaceEvent b)
+	{
+		this.AddEventToQueue(this.SerializeBlockEvent(b).
+				AddData("canBuild",  b.canBuild()).
+				AddData("player",    this.SerializeEntity(b.getPlayer())).
+				AddData("placed",    this.SerializeBlock(b.getBlockPlaced())).
+				AddData("against",   this.SerializeBlock(b.getBlockAgainst())).
+				AddData("state",     this.SerializeBlockState(b.getBlockReplacedState())).
+				AddData("created",   this.SerializeBlocksListState(b.getReplacedBlockStates())));
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void BlockBreakEvent(BlockBreakEvent b)
 	{
 		this.AddEventToQueue(this.SerializeBlockEvent(b).
-				AddData("cancelled", b.isCancelled()).
+				AddData("xp",        b.getExpToDrop()).
 				AddData("player",    this.SerializeEntity(b.getPlayer())));
 	}
+
 	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void BlockBurnEvent(BlockBurnEvent b)
 	{
-		this.AddEventToQueue(this.SerializeBlockEvent(b).AddData("cancelled", b.isCancelled()));
+		this.AddEventToQueue(this.SerializeBlockEvent(b));
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void BlockDamageEvent(BlockDamageEvent b)
 	{
 		this.AddEventToQueue(this.SerializeBlockEvent(b).
-				AddData("cancelled", b.isCancelled()).
 				AddData("player",    this.SerializeEntity(b.getPlayer())).
 				AddData("instabrk",  b.getInstaBreak()));
 	}
@@ -67,7 +155,6 @@ public class BlockEventsIngestion extends AbstractIngestionModule {
 	public void BlockDispenseEvent(BlockDispenseEvent b)
 	{
 		this.AddEventToQueue(this.SerializeBlockEvent(b).
-				AddData("cancelled", b.isCancelled()).
 				AddData("item",      this.SerializeItem(b.getItem())));	
 	}
 	

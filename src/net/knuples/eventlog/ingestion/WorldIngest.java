@@ -255,14 +255,14 @@ public class WorldIngest extends AbstractIngestionModule {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void VehicleMoveEvent(VehicleMoveEvent p)
 	{
-		//try
-		//{
+		try
+		{
 			if (AreTheSameLocations(p.getFrom(), p.getTo())) return;
 		    this.AddEventToQueue(this.NewEventPacket(p).
 							     AddData("from",     this.SerializeLocation(p.getFrom())).
 							     AddData("vehicle",  this.SerializeEntity(p.getVehicle())));
-		//}
-		//catch (Exception e) { }
+		}
+		catch (Exception e) { }
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)

@@ -1,6 +1,6 @@
 name: EventLog
 main: net.knuples.eventlog.EventLogPlugin
-version: 150223
+version: 161129
 author: uroskn
 description: >
             Playing NSA plugin

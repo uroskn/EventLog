@@ -151,7 +151,14 @@ public class PlayerIngest extends AbstractIngestionModule {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void PlayerInteractEntityEvent(PlayerInteractEntityEvent p)
 	{
-		this.AddEventToQueue(this.NewPlayerEvenet(p).AddData("entity", this.SerializeEntity(p.getRightClicked())));
+		Packet pa = this.NewPlayerEvenet(p).AddData("entity", this.SerializeEntity(p.getRightClicked()));
+		if (p instanceof PlayerArmorStandManipulateEvent)
+		{
+			pa.AddData("armor-item",  this.SerializeItem(((PlayerArmorStandManipulateEvent) p).getArmorStandItem())).
+			   AddData("player-item", this.SerializeItem(((PlayerArmorStandManipulateEvent) p).getPlayerItem())).
+			   AddData("slot",        ((PlayerArmorStandManipulateEvent) p).getSlot());
+		}
+		this.AddEventToQueue(pa);
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -204,6 +211,14 @@ public class PlayerIngest extends AbstractIngestionModule {
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
+	public void PlayerItemDamageEvent(PlayerItemDamageEvent p)
+	{
+		this.AddEventToQueue(this.NewPlayerEvenet(p).
+				AddData("item",   this.SerializeItem(p.getItem())).
+				AddData("damage", p.getDamage()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void PlayerItemConsumeEvent(PlayerItemConsumeEvent p)
 	{
 		this.AddEventToQueue(this.NewPlayerEvenet(p).AddData("entity", this.SerializeItem(p.getItem())));
@@ -253,9 +268,12 @@ public class PlayerIngest extends AbstractIngestionModule {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void PlayerPickupItemEvent(PlayerPickupItemEvent p)
 	{
-		this.AddEventToQueue(this.NewPlayerEvenet(p).
+		Packet pa = this.NewPlayerEvenet(p).
 							AddData("item",     this.SerializeItem(p.getItem().getItemStack())).
-							AddData("leftover", p.getRemaining()));
+							AddData("leftover", p.getRemaining());
+	    if (p instanceof PlayerPickupArrowEvent)
+	    	pa.AddData("arrow", this.SerializeEntity(((PlayerPickupArrowEvent) p).getArrow()));
+		this.AddEventToQueue(pa);
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -288,6 +306,12 @@ public class PlayerIngest extends AbstractIngestionModule {
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
+	public void PlayerToggleFlightEvent(PlayerSwapHandItemsEvent p)
+	{
+		this.AddEventToQueue(this.NewPlayerEvenet(p));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void PlayerToggleFlightEvent(PlayerToggleFlightEvent p)
 	{
 		this.AddEventToQueue(this.NewPlayerEvenet(p).AddData("enabled", p.isFlying()));
@@ -309,6 +333,12 @@ public class PlayerIngest extends AbstractIngestionModule {
 	public void PlayerVelocityEvent(PlayerVelocityEvent p)
 	{
 		this.AddEventToQueue(this.NewPlayerEvenet(p).AddData("velocity", p.getVelocity()));
+	}
+	
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void PlayerAchievementAwardedEvent(PlayerAchievementAwardedEvent p)
+	{
+		this.AddEventToQueue(this.NewPlayerEvenet(p).AddData("achievment", p.getAchievement()));
 	}
 	
 	@EventHandler(priority = EventPriority.MONITOR)
