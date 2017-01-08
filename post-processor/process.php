@@ -3,7 +3,7 @@
 
   //define("EXPECT_JSON", 1);
 
-  define("READ_FILE",   "/srv/workdir/events.queue.sqlite");
+  define("READ_FILE",   "/tmp/events.queue.sqlite");
   define("BASE_PATH",   "/srv/mcserver/eventlog/");
   define("_DEFAULT",    BASE_PATH."other/%DATE%.log.xz");
   define("COMMAND",     "nice -n 19 ./pipesize 0 1024000 'xz -cef0'");

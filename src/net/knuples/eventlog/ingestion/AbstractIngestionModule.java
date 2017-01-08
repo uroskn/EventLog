@@ -191,11 +191,11 @@ public class AbstractIngestionModule implements Listener {
   private void _SerializePlayer(Player p, Packet t)
   {
 	  t.AddData("network", this.GetPacket().
-			  AddData("ip",         p.getAddress().getHostString()).
-			  AddData("port",       p.getAddress().getPort())).
+	      AddData("ip",         p.getAddress().getHostString()).
+		  AddData("port",       p.getAddress().getPort())).
 		  AddData("admin-mode", this.GetPacket().
-			  AddData("gamemode",   p.getGameMode()).
-			  AddData("isop",       p.isOp())).
+		  AddData("gamemode",   p.getGameMode()).
+		  AddData("isop",       p.isOp())).
 		  AddData("isplayer",   true).
 		  AddData("name",       p.getDisplayName()).
           AddData("xp",         p.getTotalExperience()).
@@ -204,17 +204,17 @@ public class AbstractIngestionModule implements Listener {
 		  AddData("item",       this.SerializeItem(p.getInventory().getItemInMainHand())).
 		  AddData("offitem",    this.SerializeItem(p.getInventory().getItemInOffHand())).
 		  AddData("armor",      this.GetPacket().
-				  AddData("helmet",     this.SerializeItem(p.getInventory().getHelmet())).
-				  AddData("chestplate", this.SerializeItem(p.getInventory().getChestplate())).
-				  AddData("leggings",   this.SerializeItem(p.getInventory().getLeggings())).
-				  AddData("boots",      this.SerializeItem(p.getInventory().getBoots()))).
+		  AddData("helmet",     this.SerializeItem(p.getInventory().getHelmet())).
+		  AddData("chestplate", this.SerializeItem(p.getInventory().getChestplate())).
+		  AddData("leggings",   this.SerializeItem(p.getInventory().getLeggings())).
+		  AddData("boots",      this.SerializeItem(p.getInventory().getBoots()))).
 		  AddData("exaustion",  p.getExhaustion()).
 		  AddData("state",      this.GetPacket().
-			  AddData("flying",     p.isFlying()).
-			  AddData("sneaking",   p.isSneaking()).
-			  AddData("sprinting",  p.isSprinting()).
-			  AddData("sleeping",   p.isSleeping()).
-			  AddData("blocking",   p.isBlocking())).
+		  AddData("flying",     p.isFlying()).
+		  AddData("sneaking",   p.isSneaking()).
+		  AddData("sprinting",  p.isSprinting()).
+		  AddData("sleeping",   p.isSleeping()).
+		  AddData("blocking",   p.isBlocking())).
 		  AddData("listname",   p.getPlayerListName()).
 		  AddData("weather",    p.getPlayerWeather()).
 		  AddData("spectating", this.SerializeEntity(p.getSpectatorTarget())).
