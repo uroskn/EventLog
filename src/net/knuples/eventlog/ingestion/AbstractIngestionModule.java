@@ -17,6 +17,7 @@ import java.util.*;
 
 public class AbstractIngestionModule implements Listener {
   protected EventLogPlugin plugin;
+  protected HashSet<Entity> loop_check;
   
   private Packet _SerializeEntity(Entity e)
   {
@@ -143,7 +144,7 @@ public class AbstractIngestionModule implements Listener {
 	  return t;
   }
   
-  private Packet _SerializeLivingEntity(LivingEntity e, boolean screature)
+  private Packet _SerializeLivingEntity(LivingEntity e)
   {
 	  Packet t = this._SerializeEntity(e).AddData("isliving",   true).
 			  							  AddData("firetick",   e.getFireTicks()).
@@ -161,13 +162,17 @@ public class AbstractIngestionModule implements Listener {
 	  if (e.isLeashed()) t.AddData("leash", this.SerializeEntity(e.getLeashHolder()));
 	  if (e instanceof Creature)
 	  {
-		  if (screature)
+		  Creature cr = (Creature)e;
+		  if (cr.getTarget() != null)
 		  {
-			  t.AddData("target", this.SerializeEntity(((Creature) e).getTarget(), 
-					  ((((Creature) e).getTarget() instanceof Creature) && 
-	                  (((Creature) ((Creature) e).getTarget())).getTarget() == ((Creature) e).getTarget())));
+			  if (!loop_check.contains(cr.getTarget()))
+			  {
+				  loop_check.add(cr.getTarget());
+				  t.AddData("target", this.SerializeEntity(cr.getTarget()));
+			  }
+			  else t.AddData("target", "***** LOOP *****");
 		  }
-		  else t.AddData("target", "**** LOOP ****");
+		  else t.AddData("target", null);
 	  }
 	  if (e instanceof Ageable) 
 	  {
@@ -238,10 +243,11 @@ public class AbstractIngestionModule implements Listener {
 	  return p;
   }
   
-  protected Packet SerializeEntity(Entity e, boolean screature)
+  protected Packet SerializeEntity(Entity e, boolean reset_hash)
   {
+	  if (reset_hash) this.loop_check = new HashSet<Entity>();
 	  if (e == null) return this.GetPacket();
-	  if (e instanceof LivingEntity) return this._SerializeLivingEntity((LivingEntity)e, screature);
+	  if (e instanceof LivingEntity) return this._SerializeLivingEntity((LivingEntity)e);
 	  if (e instanceof Item) return this._SerializeItemEntity((Item)e);
 	  if (e instanceof Arrow) return this._SerializeArrow((Arrow) e);
 	  return this._SerializeEntity(e);
@@ -249,7 +255,7 @@ public class AbstractIngestionModule implements Listener {
   
   protected Packet SerializeEntity(Entity e)
   {
-	  return this.SerializeEntity(e, true);
+	  return SerializeEntity(e, true);
   }
   
   protected Packet SerializeLocation(Location loc)
